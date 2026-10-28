@@ -26,7 +26,7 @@ Darksite is meant to feel like standing in a field at 22:00, not like reading a 
 | | |
 |---|---|
 | **Locally** | Download [`dist/index.html`](dist/index.html) and open it in any modern browser. It needs a network connection the first time, for the ephemeris library and fonts. |
-| **Hosted** | Every push to `main` deploys to GitHub Pages: `https://YOUR-USERNAME.github.io/darksite/` once Pages is enabled (Settings → Pages → Source: GitHub Actions). |
+| **Hosted** | Every push to `main` deploys to GitHub Pages: [tanmaycj.github.io/Darksite-Planetarium](https://tanmaycj.github.io/Darksite-Planetarium/) once Pages is enabled (Settings → Pages → Source: GitHub Actions). |
 | **Embedded** | `dist/darksite.html` is the same app without its own `<head>`, ready to drop into a host page. |
 
 The app opens at **22:00 tonight** from the dark-sky site nearest your time zone, with the clock running.
@@ -125,8 +125,8 @@ Some details worth knowing:
 You need Python 3.9+ with `numpy` and `Pillow`, Node 18+, and `curl`.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/darksite.git
-cd darksite
+git clone https://github.com/TanmayCJ/Darksite-Planetarium.git
+cd Darksite-Planetarium
 pip install numpy pillow
 npm install && npx playwright install chromium
 npm run build:all   # fetch pinned catalogues → build data → assemble dist/
@@ -167,4 +167,4 @@ The code is [MIT-licensed](LICENSE). The bundled data keeps its own licenses; se
 
 Bug reports with a site and time, data corrections with a source, new layers, and better descriptions are all welcome. Everything you need to set up, build, test and open a pull request is in **[CONTRIBUTING.md](CONTRIBUTING.md)**. Please also read our [Code of Conduct](CODE_OF_CONDUCT.md), and report security issues privately as described in [SECURITY.md](SECURITY.md).
 
-<div align="center"><sub>Clear skies.</sub></div>
+<div align="center"><sub>Made by <a href="https://github.com/TanmayCJ">Tanmay CJ</a> and contributors · Clear skies.</sub></div>
