@@ -1,0 +1,22 @@
+{
+  "name": "darksite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A real-time planetarium for dark-sky observers, in a single HTML file.",
+  "license": "MIT",
+  "scripts": {
+    "fetch": "bash tools/fetch_data.sh",
+    "build:data": "python3 tools/build_data.py",
+    "build": "python3 tools/assemble.py",
+    "build:all": "npm run fetch && npm run build:data && npm run build",
+    "check": "node --check src/app.js",
+    "serve": "python3 -m http.server 8080 --directory dist",
+    "test": "node tools/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "1.48.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

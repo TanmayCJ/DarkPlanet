@@ -1,0 +1,25 @@
+name: Data correction
+description: A magnitude, distance, name or description is wrong.
+labels: ["data"]
+body:
+  - type: input
+    id: object
+    attributes:
+      label: Object
+      placeholder: M104 / Betelgeuse / NGC 869
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong, and what should it be?
+      placeholder: Distance shows 31 million ly; recent measurements give about 29.3 million ly.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: A link to SIMBAD, NED, a paper or a reputable catalogue. Corrections without a source cannot be merged.
+    validations:
+      required: true

@@ -1,0 +1,55 @@
+name: Bug report
+description: Something is drawn in the wrong place, a time is wrong, or the app misbehaves.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Sky bugs are much easier to fix when we can reproduce the exact sky you saw.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+      placeholder: Saturn's rings are drawn in front of the globe on both sides…
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Observing site
+      description: Preset name, or latitude/longitude and time zone.
+      placeholder: Cherry Springs, Pennsylvania — or 51.48, −0.00, Europe/London
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: Date and time shown in the app
+      placeholder: 2026-11-12 21:30 local
+    validations:
+      required: true
+  - type: dropdown
+    id: projection
+    attributes:
+      label: Projection
+      options: [Zenith, Horizon, Optic, Not view-related]
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference (optional)
+      description: What Stellarium, JPL Horizons or another trusted tool shows for the same site and time.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 131 on Windows 11 / Safari on iPhone 15
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console messages or screenshots
+      description: Any lines starting with [darksite] from the developer console help a lot.

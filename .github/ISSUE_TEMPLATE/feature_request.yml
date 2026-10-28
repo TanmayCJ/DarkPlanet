@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest something new to see or do in Darksite.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe it from an observer's point of view.
+      placeholder: When planning a session I want to see when a target crosses the meridian…
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How might it look or work?
+      description: Sketches, screenshots of other tools and data sources are all welcome.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself.

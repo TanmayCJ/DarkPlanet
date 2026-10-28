@@ -1,0 +1,409 @@
+<title>Darksite Planetarium</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A real-time planetarium for dark-sky observers: 41,000 stars, the Milky Way, Stellarium constellation figures, 1,200 deep-sky objects, planets, moons and a live tonight ledger.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: the sky is the page. Controls float over it as dark glass: top bar (search, projection, layers),
+   right-hand "Tonight" ledger, bottom timeline. On phones the ledger becomes a bottom sheet above the timeline.
+   Deliberately a single dark theme: this is a night instrument, and a light page would ruin dark adaptation. */
+:root{
+  --void:#03050a;
+  --glass:rgba(9,12,20,.78);
+  --glass-hi:rgba(16,20,31,.94);
+  --rule:rgba(201,166,94,.16);
+  --rule-hi:rgba(201,166,94,.42);
+  --fg:#dfe2ea;
+  --dim:#8d93a6;
+  --faint:#5c6275;
+  --brass:#c9a65e;
+  --brass-hi:#e6c98a;
+  --alert:#e48a5c;
+  --cool:#8fb4e6;
+  --f-display:"IM Fell English", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --f-ui:"IBM Plex Sans Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --f-data:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r:6px;
+  --panel-w:328px;
+  --tl-h:96px;
+  color-scheme:dark;
+}
+html,body{height:100%;}
+[hidden]{display:none!important;}
+body{background:var(--void);color:var(--fg);font:14px/1.45 var(--f-ui);overflow:hidden;-webkit-font-smoothing:antialiased;}
+#app{position:fixed;inset:0;overflow:hidden;}
+html.red #app{filter:grayscale(1) sepia(1) saturate(7) hue-rotate(-42deg) brightness(.72) contrast(1.05);}
+#sky{position:absolute;inset:0;touch-action:none;cursor:grab;outline:none;}
+#sky.dragging{cursor:grabbing;}
+#sky.hot{cursor:pointer;}
+#sky canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+#cGround,#cHud{pointer-events:none;}
+button,select,input{font:inherit;color:inherit;}
+button{cursor:pointer;}
+button:disabled{opacity:.5;cursor:progress;}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--rule);}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums;}
+
+/* ---------- top bar ---------- */
+#bar{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(16px, env(safe-area-inset-left,0px));right:calc(var(--panel-w) + 32px + env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:8px;align-items:center;pointer-events:none;z-index:7;}
+#bar > *{pointer-events:auto;}
+.brand{display:flex;align-items:baseline;gap:10px;padding:6px 12px 7px;border-radius:var(--r);}
+.brand b{font:italic 400 21px/1 var(--f-display);color:var(--brass-hi);letter-spacing:.01em;}
+.brand span{font:500 10.5px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+.seg{display:flex;border-radius:var(--r);overflow:hidden;}
+.seg button{background:none;border:0;padding:8px 12px;font-weight:500;font-size:13px;color:var(--dim);border-right:1px solid var(--rule);}
+.seg button:last-child{border-right:0;}
+.seg button[aria-pressed="true"]{color:var(--void);background:var(--brass);}
+.seg button:hover:not([aria-pressed="true"]){color:var(--fg);}
+.tbtn{border-radius:var(--r);padding:8px 12px;font-weight:500;font-size:13px;color:var(--fg);display:inline-flex;gap:7px;align-items:center;}
+.tbtn:hover{border-color:var(--rule-hi);}
+.tbtn[aria-pressed="true"],.tbtn[aria-expanded="true"]{border-color:var(--brass);color:var(--brass-hi);}
+.tbtn svg{width:15px;height:15px;flex:none;}
+#searchWrap{position:relative;z-index:10;display:flex;align-items:center;border-radius:var(--r);min-width:0;}
+#searchWrap svg{position:absolute;left:10px;width:14px;height:14px;color:var(--dim);pointer-events:none;}
+#q{background:transparent;border:0;padding:8px 12px 8px 30px;width:210px;max-width:100%;font-size:13px;}
+#q::placeholder{color:var(--faint);}
+#results{position:absolute;top:calc(100% + 6px);left:0;width:300px;max-width:calc(100vw - 32px);border-radius:var(--r);background:var(--glass-hi);padding:4px;list-style:none;margin:0;max-height:60vh;overflow:auto;z-index:9;}
+#results li{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;padding:7px 9px;border-radius:4px;cursor:pointer;}
+#results li[aria-selected="true"],#results li:hover{background:rgba(201,166,94,.12);}
+#results .n{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+#results .k{font-size:11px;color:var(--dim);white-space:nowrap;}
+#results .empty{color:var(--faint);cursor:default;}
+
+#layers{position:absolute;top:calc(58px + env(safe-area-inset-top,0px));left:max(16px, env(safe-area-inset-left,0px));z-index:8;border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:0 20px;max-width:calc(100vw - 32px);background:var(--glass-hi);max-height:calc(100% - 200px);overflow:auto;}
+#layers label{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:13px;color:var(--fg);cursor:pointer;white-space:nowrap;}
+#layers input[type=checkbox]{accent-color:var(--brass);width:15px;height:15px;margin:0;}
+#layers h3{grid-column:1/-1;margin:8px 0 4px;font:500 10.5px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+#layers h3:first-child{margin-top:0;}
+.bortle{grid-column:1/-1;display:grid;gap:6px;padding:4px 0 6px;}
+.bortle input{accent-color:var(--brass);width:100%;}
+.bortle .bl{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);}
+.bortle .bl b{color:var(--fg);font-weight:500;}
+
+#fovtag{position:absolute;left:max(16px, env(safe-area-inset-left,0px));bottom:calc(var(--tl-h) + 16px + env(safe-area-inset-bottom,0px));font:11px/1.3 var(--f-data);color:var(--faint);pointer-events:none;z-index:4;}
+#hover{position:absolute;z-index:6;pointer-events:none;font-size:12px;padding:3px 8px;border-radius:4px;background:rgba(9,12,20,.82);border:1px solid var(--rule);white-space:nowrap;color:var(--fg);}
+#hover b{font-weight:600;color:var(--brass-hi);}
+
+/* ---------- tooltip ---------- */
+#tip{position:absolute;z-index:8;width:276px;max-width:calc(100vw - 32px);border-radius:var(--r);padding:12px 14px 12px;background:var(--glass-hi);box-shadow:0 12px 40px rgba(0,0,0,.5);}
+#tip h3{margin:0 24px 2px 0;font:italic 400 21px/1.15 var(--f-display);color:var(--brass-hi);text-wrap:balance;}
+#tip .sub{color:var(--dim);font-size:12px;margin-bottom:8px;}
+#tip dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0 0 8px;font-size:12.5px;}
+#tip dt{color:var(--dim);}
+#tip dd{margin:0;font-family:var(--f-data);font-variant-numeric:tabular-nums;font-size:12px;text-align:right;}
+#tip p{margin:0;font-size:13px;line-height:1.4;}
+#tip .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+#tip .acts button{background:none;border:1px solid var(--rule);border-radius:4px;padding:4px 9px;font-size:12px;color:var(--brass-hi);}
+#tip .acts button:hover{border-color:var(--rule-hi);}
+#tip .x{position:absolute;top:6px;right:6px;background:none;border:0;color:var(--dim);font-size:18px;line-height:1;padding:4px 7px;border-radius:4px;}
+#tip .x:hover{color:var(--fg);}
+
+/* ---------- right ledger ---------- */
+#panel{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(16px, env(safe-area-inset-right,0px));bottom:calc(var(--tl-h) + 12px + env(safe-area-inset-bottom,0px));width:var(--panel-w);border-radius:var(--r);display:flex;flex-direction:column;z-index:5;overflow:hidden;}
+#panelHead{padding:14px 16px 12px;border-bottom:1px solid var(--rule);display:grid;gap:4px;}
+#panelHead .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+#clock{font:500 30px/1 var(--f-data);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+#clockdate{color:var(--dim);font-size:12.5px;}
+#site{display:flex;gap:6px;align-items:center;min-width:0;}
+#siteSel{background:transparent;border:0;color:var(--brass-hi);font-weight:500;font-size:13px;padding:2px 0;max-width:100%;min-width:0;text-overflow:ellipsis;}
+#siteSel option{background:#10131d;color:var(--fg);}
+#custom{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-top:6px;}
+#custom input{min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--rule);border-radius:4px;padding:5px 7px;font:12px var(--f-data);}
+#custom #cTz{grid-column:1/-1;}
+#custom button{grid-column:1/-1;background:none;border:1px solid var(--rule);border-radius:4px;padding:5px 8px;font-size:12px;color:var(--brass-hi);}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;padding:3px 8px;border-radius:999px;border:1px solid var(--rule);white-space:nowrap;}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--dim);display:block;}
+.chip.dark i{background:#5d7bd6;box-shadow:0 0 6px #5d7bd6;}
+.chip.twi i{background:#d28a5a;}
+.chip.day i{background:#f2d27c;}
+#panelBody{overflow-y:auto;padding:4px 16px 16px;flex:1;overscroll-behavior:contain;}
+#panelBody section{padding:14px 0 12px;border-bottom:1px solid var(--rule);}
+#panelBody section:last-child{border-bottom:0;}
+#panelBody h2{margin:0 0 10px;font:500 10.5px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;gap:8px;}
+#panelBody h2 em{font-style:normal;letter-spacing:0;text-transform:none;color:var(--faint);font-size:11px;}
+.moonrow{display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:center;}
+#moonCv{width:64px;height:64px;}
+.ph{font:italic 400 19px/1.1 var(--f-display);}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;margin:6px 0 0;}
+.kv dt{color:var(--dim);}
+.kv dd{margin:0;text-align:right;font-family:var(--f-data);font-variant-numeric:tabular-nums;font-size:11.5px;}
+#nightBar{position:relative;height:22px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.03);margin:2px 0 8px;}
+#nightBar canvas{width:100%;height:100%;display:block;}
+.nightkv{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;}
+.nightkv div{display:grid;gap:1px;}
+.nightkv span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);}
+.nightkv b{font:500 12px var(--f-data);font-variant-numeric:tabular-nums;}
+.mfree{margin-top:8px;font-size:12.5px;color:var(--dim);}
+.mfree b{color:var(--fg);font-weight:500;}
+table.pl{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.pl td{padding:4px 0;border-top:1px solid rgba(201,166,94,.07);vertical-align:baseline;}
+table.pl tr:first-child td{border-top:0;}
+table.pl td:nth-child(2),table.pl td:nth-child(3){font-family:var(--f-data);font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--dim);text-align:right;padding-left:6px;}
+table.pl td:last-child{text-align:right;font-size:11.5px;padding-left:8px;white-space:nowrap;}
+table.pl button{all:unset;cursor:pointer;display:inline-flex;gap:7px;align-items:center;font-weight:500;}
+table.pl button:hover{color:var(--brass-hi);}
+table.pl button:focus-visible{outline:2px solid var(--brass);}
+table.pl i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.up{color:var(--ok, #9cc9a4);}
+.dn{color:var(--faint);}
+.rs{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rs h4{margin:0 0 6px;font-size:11.5px;font-weight:600;color:var(--dim);}
+.rs ul,.ev,.conj,.best{list-style:none;margin:0;padding:0;}
+.rs li{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;padding:2px 0;}
+.rs li span:first-child{font-family:var(--f-display);font-style:italic;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.rs li .num{color:var(--dim);font-size:11.5px;}
+.empty{color:var(--faint);font-size:12.5px;}
+.conj li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:5px 0;font-size:13px;}
+.conj li i{width:8px;height:8px;border-radius:50%;margin-top:5px;}
+.conj li b{font-weight:600;}
+.conj li .num{color:var(--alert);}
+.best li,.ev li{border-top:1px solid rgba(201,166,94,.08);}
+.best li:first-child,.ev li:first-child{border-top:0;}
+.best button,.ev button{all:unset;box-sizing:border-box;width:100%;display:grid;gap:10px;padding:7px 4px;border-radius:4px;cursor:pointer;}
+.best button{grid-template-columns:1fr auto;align-items:baseline;}
+.ev button{grid-template-columns:52px 1fr;}
+.best button:hover,.ev button:hover{background:rgba(201,166,94,.07);}
+.best button:focus-visible,.ev button:focus-visible{outline:2px solid var(--brass);}
+.best .t{font-size:13px;font-weight:500;}
+.best .s{font-size:11.5px;color:var(--dim);}
+.best .a{font:11.5px var(--f-data);color:var(--dim);text-align:right;}
+.ev .d{font:500 11px/1.25 var(--f-data);color:var(--brass);text-transform:uppercase;}
+.ev .d small{display:block;color:var(--dim);font-weight:400;}
+.ev .t{font-size:13px;font-weight:500;line-height:1.3;}
+.ev .s{font-size:11.5px;color:var(--dim);line-height:1.3;margin-top:1px;}
+.tag{display:inline-block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1px solid var(--rule);color:var(--dim);margin-left:5px;vertical-align:1px;font-weight:500;}
+#credit{font-size:11px;color:var(--faint);line-height:1.5;}
+#sheetToggle{display:none;}
+
+/* ---------- timeline ---------- */
+#tl{position:absolute;left:0;right:0;bottom:0;height:calc(var(--tl-h) + env(safe-area-inset-bottom,0px));padding:10px max(16px, env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px));display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:stretch;z-index:6;border-width:1px 0 0;}
+#tlCtl{display:grid;grid-template-columns:repeat(4,auto);gap:6px;align-content:center;}
+#tlCtl button,#tlCtl select{background:rgba(255,255,255,.03);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;font-size:12px;font-weight:500;min-width:40px;}
+#tlCtl button:hover{border-color:var(--rule-hi);}
+#tlCtl #play{color:var(--brass-hi);}
+#tlCtl #speed{min-width:76px;}
+#tlCtl select option{background:#10131d;}
+#tlCtl input[type=datetime-local]{grid-column:1/-1;background:rgba(255,255,255,.03);border:1px solid var(--rule);border-radius:4px;padding:4px 6px;font:12px var(--f-data);min-width:0;}
+#tlStrip{position:relative;min-width:0;cursor:ew-resize;touch-action:none;}
+#tlCv{position:absolute;inset:0;width:100%;height:100%;}
+
+/* ---------- overlays ---------- */
+.modal{position:absolute;inset:0;z-index:20;background:rgba(2,3,6,.86);display:grid;place-items:center;padding:24px max(16px, env(safe-area-inset-right,0px)) 24px max(16px, env(safe-area-inset-left,0px));}
+#shot figure{margin:0;max-width:min(900px,100%);display:grid;gap:10px;}
+#shot img{max-width:100%;max-height:70vh;border:1px solid var(--rule);border-radius:4px;}
+#shot figcaption{color:var(--dim);font-size:13px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;}
+.modal .go{background:var(--brass);color:var(--void);border:0;border-radius:4px;padding:6px 14px;font-weight:600;}
+#help .card{max-width:520px;width:100%;border-radius:var(--r);padding:20px 22px;background:var(--glass-hi);border:1px solid var(--rule);}
+#help h2{margin:0 0 12px;font:italic 400 24px/1.1 var(--f-display);color:var(--brass-hi);}
+#help dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0 0 14px;font-size:13px;}
+#help dt{font:500 12px var(--f-data);color:var(--brass);}
+#help dd{margin:0;color:var(--fg);}
+#help p{margin:0 0 14px;font-size:13px;color:var(--dim);line-height:1.5;}
+#toast{position:absolute;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top,0px));z-index:21;padding:8px 14px;border-radius:var(--r);font-size:13px;max-width:calc(100vw - 32px);text-align:center;}
+#loading{position:absolute;inset:0;display:grid;place-items:center;z-index:30;background:var(--void);font:italic 22px var(--f-display);color:var(--brass);transition:opacity .8s;text-align:center;padding:0 24px;}
+#loading.gone{opacity:0;pointer-events:none;}
+
+@media (max-width:1440px){ #bRed .lbl,#bExport .lbl{display:none;} }
+@media (max-width:1100px){ #q{width:150px;} .brand span{display:none;} #bLayers .lbl{display:none;} }
+@media (max-width:760px){
+  :root{--tl-h:118px;}
+  #bar{right:max(16px, env(safe-area-inset-right,0px));}
+  .brand{display:none;}
+  #searchWrap{flex:1 1 100%;order:-1;}
+  #q{width:100%;}
+  #results{width:100%;}
+  .seg button{padding:7px 9px;font-size:12px;}
+  .tbtn{padding:7px 9px;}
+  .tbtn .lbl{display:none;}
+  #layers{top:calc(104px + env(safe-area-inset-top,0px));grid-template-columns:1fr;max-height:calc(100% - 330px);}
+  #panel{top:auto;left:max(8px, env(safe-area-inset-left,0px));right:max(8px, env(safe-area-inset-right,0px));width:auto;bottom:calc(var(--tl-h) + 8px + env(safe-area-inset-bottom,0px));max-height:58vh;}
+  #panel.collapsed #panelBody,#panel.collapsed #custom{display:none;}
+  #panelHead{padding:10px 14px 10px;}
+  #clock{font-size:24px;}
+  #sheetToggle{display:inline-flex;background:none;border:1px solid var(--rule);border-radius:999px;padding:3px 10px;font-size:11.5px;color:var(--brass-hi);}
+  #tl{grid-template-columns:1fr;grid-template-rows:auto 1fr;gap:8px;padding-top:8px;}
+  #tlCtl{grid-template-columns:none;grid-auto-flow:column;justify-content:start;overflow-x:auto;scrollbar-width:none;}
+  #tlCtl input[type=datetime-local]{grid-column:auto;}
+  #fovtag,#hover{display:none;}
+}
+@media (prefers-reduced-motion:reduce){#loading{transition:none;}}
+</style>
+
+<div id="app">
+  <div id="sky" tabindex="0" aria-label="Sky view. Drag to look around, scroll or pinch to zoom, click an object for details. Press ? for keyboard shortcuts." role="application">
+    <canvas id="cSky"></canvas>
+    <canvas id="cMain"></canvas>
+    <canvas id="cTw"></canvas>
+    <canvas id="cGround"></canvas>
+    <canvas id="cHud"></canvas>
+    <div id="hover" hidden></div>
+    <div id="tip" class="glass" hidden role="dialog" aria-live="polite"></div>
+  </div>
+
+  <div id="bar">
+    <div class="brand glass"><b>Darksite</b><span>Planetarium</span></div>
+    <div id="searchWrap" class="glass">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg>
+      <input id="q" type="search" placeholder="Find a star, planet, M31, Orion…" autocomplete="off" spellcheck="false" aria-label="Find an object" aria-controls="results" aria-autocomplete="list">
+      <ul id="results" class="glass" role="listbox" hidden></ul>
+    </div>
+    <div class="seg glass" role="group" aria-label="Projection">
+      <button id="pZenith" aria-pressed="true" title="Whole dome, zenith at centre (fisheye)">Zenith</button>
+      <button id="pHorizon" aria-pressed="false" title="Standing view toward the horizon (stereographic)">Horizon</button>
+      <button id="pOptic" aria-pressed="false" title="Narrow rectilinear field, like binoculars or a telescope (gnomonic)">Optic</button>
+    </div>
+    <button class="tbtn glass" id="bLayers" aria-expanded="false" aria-controls="layers" title="Layers and sky quality"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2 1.5 5.5 8 9l6.5-3.5L8 2Z"/><path d="m1.5 8.5 6.5 3.5 6.5-3.5"/><path d="m1.5 11 6.5 3.5 6.5-3.5" opacity=".6"/></svg><span class="lbl">Layers</span></button>
+    <button class="tbtn glass" id="bRed" aria-pressed="false" title="Red night-vision mode (N)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11Z" fill="currentColor" opacity=".7"/></svg><span class="lbl">Night vision</span></button>
+    <button class="tbtn glass" id="bExport" title="Export the current view as a 4096 px PNG"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v8m0 0 3-3m-3 3L5 7"/><path d="M2.5 11v2.5h11V11"/></svg><span class="lbl">Export PNG</span></button>
+    <button class="tbtn glass" id="bHelp" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4"/><circle cx="8" cy="11.6" r=".4" fill="currentColor"/></svg></button>
+  </div>
+
+  <div id="layers" hidden>
+    <h3>Sky quality</h3>
+    <div class="bortle">
+      <div class="bl"><span>Bortle <b id="bortleN">3</b> · <span id="bortleName">Rural sky</span></span><span id="bortleLim" class="num"></span></div>
+      <input type="range" id="bortle" min="1" max="9" step="1" value="3" aria-label="Bortle dark-sky scale">
+    </div>
+    <h3>Figures</h3>
+    <label><input type="checkbox" id="L_art">Constellation art</label>
+    <label><input type="checkbox" id="L_lines">Figure lines</label>
+    <label><input type="checkbox" id="L_cnames">Constellation names</label>
+    <label><input type="checkbox" id="L_borders">IAU boundaries</label>
+    <label><input type="checkbox" id="L_asterisms">Asterisms</label>
+    <label><input type="checkbox" id="L_snames">Star names</label>
+    <h3>Objects</h3>
+    <label><input type="checkbox" id="L_dso">Messier objects</label>
+    <label><input type="checkbox" id="L_ngc">NGC / IC objects</label>
+    <label><input type="checkbox" id="L_planets">Planets &amp; Moon</label>
+    <label><input type="checkbox" id="L_orbits">Planet paths</label>
+    <label><input type="checkbox" id="L_meteors">Meteor radiants</label>
+    <label><input type="checkbox" id="L_mw">Milky Way</label>
+    <h3>Reference &amp; atmosphere</h3>
+    <label><input type="checkbox" id="L_grid">Alt/az grid</label>
+    <label><input type="checkbox" id="L_refs">Equator &amp; ecliptic</label>
+    <label><input type="checkbox" id="L_atm">Atmosphere</label>
+    <label><input type="checkbox" id="L_zodi">Zodiacal light</label>
+    <label><input type="checkbox" id="L_tw">Twinkling</label>
+    <label><input type="checkbox" id="L_ground">Ground &amp; treeline</label>
+  </div>
+
+  <div id="fovtag" class="num"></div>
+
+  <aside id="panel" class="glass" aria-label="Tonight">
+    <div id="panelHead">
+      <div class="row">
+        <div id="site"><select id="siteSel" aria-label="Observing site"></select></div>
+        <button id="sheetToggle" aria-expanded="false">Tonight</button>
+      </div>
+      <div class="row">
+        <div><div id="clock" class="num">22:00</div><div id="clockdate"></div></div>
+        <span id="darkChip" class="chip dark"><i></i><span>Full darkness</span></span>
+      </div>
+      <div id="custom" hidden>
+        <input id="cLat" inputmode="decimal" aria-label="Latitude in degrees, north positive" placeholder="Latitude °">
+        <input id="cLon" inputmode="decimal" aria-label="Longitude in degrees, east positive" placeholder="Longitude °">
+        <input id="cTz" list="tzList" aria-label="Time zone" placeholder="Time zone, e.g. Europe/Berlin">
+        <datalist id="tzList"></datalist>
+        <button id="cGo">Use this location</button>
+      </div>
+    </div>
+    <div id="panelBody">
+      <section>
+        <h2>Darkness tonight <em id="nightNote"></em></h2>
+        <div id="nightBar"><canvas id="nightCv" aria-hidden="true"></canvas></div>
+        <div class="nightkv" id="nightKv"></div>
+        <div class="mfree" id="mfree"></div>
+      </section>
+      <section>
+        <h2>Moon <em id="moonWhen"></em></h2>
+        <div class="moonrow">
+          <canvas id="moonCv" width="128" height="128" aria-hidden="true"></canvas>
+          <div><div class="ph" id="moonPh">—</div><dl class="kv" id="moonKv"></dl></div>
+        </div>
+      </section>
+      <section>
+        <h2>Planets <em>tap to find</em></h2>
+        <table class="pl" id="planetTable"></table>
+      </section>
+      <section>
+        <h2>Best right now <em>high and bright</em></h2>
+        <ul class="best" id="best"></ul>
+      </section>
+      <section>
+        <h2>Next two hours <em>by figure centre</em></h2>
+        <div class="rs">
+          <div><h4>↑ Rising</h4><ul id="rising"></ul></div>
+          <div><h4>↓ Setting</h4><ul id="setting"></ul></div>
+        </div>
+      </section>
+      <section>
+        <h2>Conjunction alert <em>planet ≤ 5° from a named star</em></h2>
+        <ul class="conj" id="conj"></ul>
+      </section>
+      <section>
+        <h2>Next 7 days <em>tap to jump</em></h2>
+        <ul class="ev" id="events"><li class="empty">Computing…</li></ul>
+      </section>
+      <section>
+        <div id="credit">Stars: HYG 3.8 (Hipparcos, Yale, Gliese), CC BY-SA 4.0. Milky Way, deep-sky catalogue, boundaries and figure lines: d3-celestial by Olaf Frohn, BSD-3. Constellation art: Stellarium “modern” sky culture, Free Art License 1.3. Ephemerides: Astronomy Engine by Don Cross, MIT.</div>
+      </section>
+    </div>
+  </aside>
+
+  <footer id="tl" class="glass">
+    <div id="tlCtl">
+      <button id="tNow" title="Jump to the current time (T)">Now</button>
+      <button id="tTonight" title="Tonight at 22:00 at this site">22:00</button>
+      <button id="play" aria-label="Pause time" title="Play / pause (Space)">❚❚</button>
+      <select id="speed" aria-label="Time speed">
+        <option value="1">1×</option>
+        <option value="60">1 min/s</option>
+        <option value="600">10 min/s</option>
+        <option value="3600">1 h/s</option>
+        <option value="86400">1 day/s</option>
+        <option value="-600">−10 min/s</option>
+        <option value="-3600">−1 h/s</option>
+      </select>
+      <button id="tDm" title="Back one day">−1d</button>
+      <button id="tHm" title="Back one hour ([)">−1h</button>
+      <button id="tHp" title="Forward one hour (])">+1h</button>
+      <button id="tDp" title="Forward one day">+1d</button>
+      <input type="datetime-local" id="tInput" aria-label="Date and time at the site">
+    </div>
+    <div id="tlStrip" aria-label="Timeline: drag to scrub time"><canvas id="tlCv"></canvas></div>
+  </footer>
+
+  <div id="shot" class="modal" hidden>
+    <figure>
+      <img id="shotImg" alt="Exported sky view">
+      <figcaption><span id="shotCap">Right-click or long-press the image to save it.</span><button class="go" id="shotClose">Close</button></figcaption>
+    </figure>
+  </div>
+  <div id="help" class="modal" hidden>
+    <div class="card" role="dialog" aria-labelledby="helpTitle">
+      <h2 id="helpTitle">Keys &amp; gestures</h2>
+      <dl>
+        <dt>Drag</dt><dd>Look around (rotate the dome in Zenith view)</dd>
+        <dt>Wheel · pinch · + −</dt><dd>Zoom. Fainter stars and deep-sky objects appear as you zoom in.</dd>
+        <dt>Click · tap</dt><dd>Details for a star, planet, nebula or constellation</dd>
+        <dt>/</dt><dd>Search</dd>
+        <dt>1 2 3</dt><dd>Zenith, Horizon, Optic projections</dd>
+        <dt>← → ↑ ↓</dt><dd>Pan</dd>
+        <dt>Space · [ ] · T</dt><dd>Play or pause, step one hour, jump to now</dd>
+        <dt>L · N · Esc</dt><dd>Layers, night vision, close panels</dd>
+      </dl>
+      <p>Positions come from Astronomy Engine with full precession, nutation and topocentric parallax. Stars brighter than mag 8 are from the HYG catalogue; their colours follow the measured B−V index.</p>
+      <button class="go" id="helpClose">Close</button>
+    </div>
+  </div>
+  <div id="toast" class="glass" hidden role="status"></div>
+  <div id="loading">Waiting for dark…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script>/*SKYDATA*/</script>
+<script>
+/*APP*/
+</script>
