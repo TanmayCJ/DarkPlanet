@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: prime page
 
 on:
   push:
