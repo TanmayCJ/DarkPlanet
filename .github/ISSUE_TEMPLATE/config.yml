@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions and ideas
-    url: https://github.com/TanmayCJ/Darksite-Planetarium/discussions
+    url: https://github.com/TanmayCJ/DarkPlanet/discussions
     about: Ask questions and share observing ideas in Discussions.
   - name: Security issue
-    url: https://github.com/TanmayCJ/Darksite-Planetarium/security/advisories/new
+    url: https://github.com/TanmayCJ/DarkPlanet/security/advisories/new
     about: Please report vulnerabilities privately; see SECURITY.md.

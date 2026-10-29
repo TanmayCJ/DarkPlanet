@@ -33,7 +33,7 @@ Darksite is meant to feel like standing in a field at 22:00, not like reading a 
 | | |
 |---|---|
 | **Locally** | Download [`dist/index.html`](dist/index.html) and open it in any modern browser. It needs a network connection the first time, for the ephemeris library and fonts. |
-| **Hosted** | Every push to `main` deploys to GitHub Pages: [tanmaycj.github.io/Darksite-Planetarium](https://tanmaycj.github.io/Darksite-Planetarium/) once Pages is enabled (Settings → Pages → Source: GitHub Actions). |
+| **Hosted** | Every push to `main` deploys to GitHub Pages: [tanmaycj.github.io/DarkPlanet](https://tanmaycj.github.io/DarkPlanet/) once Pages is enabled (Settings → Pages → Source: GitHub Actions). |
 | **Embedded** | `dist/darksite.html` is the same app without its own `<head>`, ready to drop into a host page. |
 
 The app opens at **22:00 tonight** from the dark-sky site nearest your time zone, with the clock running.
@@ -132,8 +132,8 @@ Some details worth knowing:
 You need Python 3.9+ with `numpy` and `Pillow`, Node 18+, and `curl`.
 
 ```bash
-git clone https://github.com/TanmayCJ/Darksite-Planetarium.git
-cd Darksite-Planetarium
+git clone https://github.com/TanmayCJ/DarkPlanet.git
+cd DarkPlanet
 pip install numpy pillow
 npm install && npx playwright install chromium
 npm run build:all   # fetch pinned catalogues → build data → assemble dist/

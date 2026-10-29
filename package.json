@@ -4,13 +4,13 @@
   "private": true,
   "description": "A real-time planetarium for dark-sky observers, in a single HTML file.",
   "author": "Tanmay CJ (https://github.com/TanmayCJ)",
-  "homepage": "https://tanmaycj.github.io/Darksite-Planetarium/",
+  "homepage": "https://tanmaycj.github.io/DarkPlanet/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TanmayCJ/Darksite-Planetarium.git"
+    "url": "git+https://github.com/TanmayCJ/DarkPlanet.git"
   },
   "bugs": {
-    "url": "https://github.com/TanmayCJ/Darksite-Planetarium/issues"
+    "url": "https://github.com/TanmayCJ/DarkPlanet/issues"
   },
   "license": "MIT",
   "scripts": {

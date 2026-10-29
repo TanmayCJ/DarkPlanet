@@ -55,9 +55,9 @@ Labels go through `queueLabel` and are placed by priority with collision avoidan
 You need **Python 3.9+** with `numpy` and `Pillow`, **Node 18+**, and `curl`.
 
 ```bash
-# fork https://github.com/TanmayCJ/Darksite-Planetarium on GitHub first, then:
-git clone https://github.com/<your-username>/Darksite-Planetarium.git
-cd Darksite-Planetarium
+# fork https://github.com/TanmayCJ/DarkPlanet on GitHub first, then:
+git clone https://github.com/<your-username>/DarkPlanet.git
+cd DarkPlanet
 pip install numpy pillow
 npm install            # Playwright, for the smoke test only
 npx playwright install chromium

@@ -1753,12 +1753,9 @@ $('bExport').onclick = async () => {
     if (!blob) throw new Error('the browser could not encode the image');
     const p = tzParts(S.site.tz, S.t), z = (n) => String(n).padStart(2, '0');
     const filename = `darksite-${p.y}${z(p.mo)}${z(p.d)}-${z(p.h)}${z(p.mi)}-${S.mode}.png`;
-    let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) {}
-    if (dl) {
-      try { await dl.save({filename, data: blob}); toast('Saved ' + filename); }
-      catch (e) { if (e && e.code === 'declined') toast('Export cancelled.'); else showShot(blob, filename); }
-    } else if (!window.claude) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Saved ' + filename); }
-    else showShot(blob, filename);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Saved ' + filename);
   } catch (e) { console.error(e); toast('Export failed: ' + (e.message || e)); resize(); }
   b.disabled = false; requestRender();
 };
