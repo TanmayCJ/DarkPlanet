@@ -6,3 +6,4 @@ _site/
 .DS_Store
 *.log
 __pycache__/
+brag-output/

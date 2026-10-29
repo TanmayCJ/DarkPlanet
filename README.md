@@ -8,7 +8,7 @@
 
 41,000 stars · the Milky Way · Stellarium constellation art · 1,100 deep-sky objects · planets, moons and meteor showers · a live *Tonight* ledger
 
-[Open the app](#open-it) · [What you can see](#whats-in-the-sky) · [How it works](#how-it-works) · [Build from source](#build-from-source) · [Contribute](#contributing)
+[Watch the film](#the-film) · [Open the app](#open-it) · [What you can see](#whats-in-the-sky) · [How it works](#how-it-works) · [Build from source](#build-from-source) · [Contribute](#contributing)
 
 ![License: MIT](https://img.shields.io/badge/code-MIT-c9a65e?style=flat-square)
 ![Data: CC BY-SA 4.0](https://img.shields.io/badge/data-CC%20BY--SA%204.0-8fb4e6?style=flat-square)
@@ -20,6 +20,13 @@
 ---
 
 Darksite is meant to feel like standing in a field at 22:00, not like reading a diagram. Stars carry their true colours and dim and redden toward the horizon. The Milky Way brightens toward Sagittarius and fades when the Moon rises. Constellations are drawn as faint gold engravings, and the sky changes as you scrub through the night.
+
+## The film
+
+<p align="center">
+  <a href="docs/media/darksite-film.mp4"><img src="docs/media/film-preview.webp" alt="Excerpt from the Darksite launch film: the gold Darksite wordmark over the Milky Way, Orion's stars in their true colours, and Orion's constellation figure appearing" width="100%"></a>
+</p>
+<p align="center"><sub>A 25-second film made entirely from the app's own renders, with an original score. <a href="docs/media/darksite-film.mp4"><b>▶ Watch the full film</b></a> (1280×720, with sound).</sub></p>
 
 ## Open it
 
